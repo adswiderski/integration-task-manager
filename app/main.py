@@ -3,8 +3,10 @@ from sqlalchemy.orm import Session
 
 from app.db.database import Base, get_db, engine
 from app.db.models.task import Task
+from app.db.models.user import User
 from app.routers import task
 from app.schemas.task import TaskCreate, TaskRead
+from app.schemas.user import UserCreate
 
 
 Base.metadata.create_all(bind=engine)
@@ -62,3 +64,20 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     db.delete(task)
     db.commit()
     return {"message": f"Task {task_id} got deleted"}
+
+@app.get("/users/")
+def get_users(db: Session = Depends(get_db)):
+    users = db.query(User).all()
+    return [{"id": u.id, "email": u.email} for u in users]
+
+
+@app.post("/users/")
+def create_user(user: UserCreate, db: Session = Depends(get_db)):
+    db_user = User(
+        email=user.email,
+        hashed_password=user.password,
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    db.close()
