@@ -7,6 +7,7 @@ from app.db.models.user import User
 from app.routers import task
 from app.schemas.task import TaskCreate, TaskRead
 from app.schemas.user import UserCreate
+from app.utils.auth import hash_password
 
 
 Base.metadata.create_all(bind=engine)
@@ -75,9 +76,26 @@ def get_users(db: Session = Depends(get_db)):
 def create_user(user: UserCreate, db: Session = Depends(get_db)):
     db_user = User(
         email=user.email,
-        hashed_password=user.password,
+        hashed_password=user.hashed_password,
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     db.close()
+
+
+@app.post("/register")
+def register(user: UserCreate, db: Session = Depends(get_db)):
+    existing = db.query(User).filter(User.email == user.email).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Email had been registered already")
+    
+    hashed = hash_password(user.password)
+    
+    db_user = User(email=user.email, hashed_password=hashed)
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    return {"id": db_user.id, "email": db_user.email}
+             
