@@ -1,4 +1,6 @@
-from fastapi import Depends, FastAPI, HTTPException
+from datetime import timedelta
+from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.db.database import Base, get_db, engine
@@ -7,7 +9,8 @@ from app.db.models.user import User
 from app.routers import task
 from app.schemas.task import TaskCreate, TaskRead
 from app.schemas.user import UserCreate
-from app.utils.auth import hash_password
+from app.utils.auth import hash_password, verify_password
+from app.utils.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_token
 
 
 Base.metadata.create_all(bind=engine)
@@ -41,8 +44,48 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     db.refresh(db_task)
     return db_task
     
-app.include_router(task.router)
+security = HTTPBearer()
 
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+    db: Session = Depends(get_db)
+):
+    """
+    Dependency, które weryfikuje token i zwraca zalogowanego usera
+    Uzycie: current_user = Depends(get_current_user)
+    """
+    token = credentials.credentials
+
+    email = verify_token(token)
+    if email is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authentication credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    user = db.query(User).filter(User.email == email).first()
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User not found",
+        )
+    return user
+
+
+@app.get("/me")
+def read_users_me(current_user: User = Depends(get_current_user)):
+    """
+    Zwraca dane zalogowanego uzytkownika
+    Wymaga tokenu w headerze: Authorization: Bearer <token>
+    """
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+    }
+
+
+app.include_router(task.router)
 
 @app.put("/tasks/{task_id}", response_model=TaskRead)
 def update_task(task_id: int, task_update: TaskCreate, db: Session = Depends(get_db)):
@@ -99,3 +142,35 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
     return {"id": db_user.id, "email": db_user.email}
              
+
+@app.post("/login")
+def login(user: UserCreate, db: Session = Depends(get_db)):
+    """
+    Logowanie uzytkownika:
+    - sprawdza e-mail i hasło
+    - zwraca JWT token
+    """
+
+    db_user = db.query(User).filter(User.email == user.email).first()
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+    
+    if not verify_password(user.password, str(db_user.hashed_password)):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+        )
+    
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": db_user.email},
+        expires_delta=access_token_expires,
+    )
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
