@@ -28,22 +28,6 @@ def mental():
 def version():
     return {"aaa": {"version": "0.1.0", "service": "integration-task-manager"}}
 
-@app.get("/tasks/", response_model=list[TaskRead])
-def get_tasks(db: Session = Depends(get_db)):
-    tasks = db.query(Task).all()
-    return tasks
-
-@app.post("/tasks/", response_model=TaskRead)
-def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    db_task = Task(
-        title=task.title,
-        description=task.description,
-    )
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
-    return db_task
-    
 security = HTTPBearer()
 
 def get_current_user(
@@ -73,6 +57,14 @@ def get_current_user(
     return user
 
 
+@app.get("/tasks/", response_model=list[TaskRead])
+def get_tasks(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    tasks = db.query(Task).filter(Task.owner_id == current_user.id).all()
+    return tasks
+
 @app.get("/me")
 def read_users_me(current_user: User = Depends(get_current_user)):
     """
@@ -84,6 +76,17 @@ def read_users_me(current_user: User = Depends(get_current_user)):
         "email": current_user.email,
     }
 
+@app.post("/tasks/", response_model=TaskRead)
+def create_task(task: TaskCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    db_task = Task(
+        title=task.title,
+        description=task.description,
+        owner_id=current_user.id
+    )
+    db.add(db_task)
+    db.commit()
+    db.refresh(db_task)
+    return db_task
 
 app.include_router(task.router)
 

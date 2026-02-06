@@ -1,6 +1,6 @@
 from datetime import datetime, timezone
-from sqlalchemy import DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 
 from app.db.database import Base
@@ -32,3 +32,9 @@ class Task(Base):
         onupdate=datetime.now(timezone.utc),
         nullable=False,
     )
+
+    owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+
+    owner = relationship("User", back_populates="tasks")
+
+
