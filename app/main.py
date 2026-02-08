@@ -7,7 +7,7 @@ from app.db.database import Base, get_db, engine
 from app.db.models.task import Task
 from app.db.models.user import User
 from app.routers import task
-from app.schemas.task import TaskCreate, TaskRead
+from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.schemas.user import UserCreate
 from app.utils.auth import hash_password, verify_password
 from app.utils.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_token
@@ -90,27 +90,60 @@ def create_task(task: TaskCreate, current_user: User = Depends(get_current_user)
 
 app.include_router(task.router)
 
-@app.put("/tasks/{task_id}", response_model=TaskRead)
-def update_task(task_id: int, task_update: TaskCreate, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
+@app.put("/tasks/{task_id}")
+def update_task(
+    task_id: int,
+    task_update: TaskUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Updates task - own only
+    Token required
+    """
+    task = db.query(Task).filter(
+        Task.id == task_id,
+        Task.owner_id == current_user.id
+    ).first()
+
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     
-    task.title = task_update.title
-    task.description = task_update.description
+    if task_update.title is not None:
+        task.title = task_update.title
+    if task_update.description is not None:
+        task.description = task_update.description
+    if task_update.status is not None:
+        task.status = task_update.status
+
     db.commit()
     db.refresh(task)
     return task
 
-@app.delete("/tasks/{task_id}", response_model=dict)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id).first()
+@app.delete("/tasks/{task_id}")
+def delete_task(
+    task_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Deleted task - own only
+    Token required
+    """
+    task = db.query(Task).filter(
+        Task.id == task_id,
+        Task.owner_id == current_user.id
+    ).first()
+
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-
+    
     db.delete(task)
     db.commit()
-    return {"message": f"Task {task_id} got deleted"}
+
+    return {"message": "Task deleted successfully"}
+
+
 
 @app.get("/users/")
 def get_users(db: Session = Depends(get_db)):
