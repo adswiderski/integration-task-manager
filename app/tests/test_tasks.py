@@ -9,6 +9,9 @@ def test_create_task_success(client: TestClient):
     """Test creating task with auth succeeds"""
     client.post("/register", json={"email": "test@test.com", "password": "pass"})
     login = client.post("/login", json={"email": "test@test.com", "password": "pass"})
+
+    print(f"Login status: {login.status_code}")
+    print(f"Login response: {login.json()}")
     token = login.json()["access_token"]
     
     response = client.post(

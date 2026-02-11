@@ -19,8 +19,8 @@ def test_register_duplicate_email(client: TestClient):
 
 def test_login_success(client: TestClient):
     """Test successful login"""
-    client.post("/register", json={"email": "test@test.com", "password": "testpass"})
-    response = client.post("/login", json={"email": "test@test.com", "password": "testpass"})
+    client.post("/register", json={"email": "test1@test.com", "password": "test1pass"})
+    response = client.post("/login", json={"email": "test1@test.com", "password": "test1pass"})
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data

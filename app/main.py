@@ -11,9 +11,12 @@ from app.schemas.task import TaskCreate, TaskRead, TaskUpdate
 from app.schemas.user import UserCreate
 from app.utils.auth import hash_password, verify_password
 from app.utils.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_token
+import os
 
 
-Base.metadata.create_all(bind=engine)
+if os.getenv("TESTING") != "true":
+    Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="Integration task manago")
 
 @app.get("/health")
