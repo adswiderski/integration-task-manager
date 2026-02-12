@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 def test_create_task_requires_auth(client: TestClient):
     """Test creating task without auth fails"""
     response = client.post("/tasks/", json={"title": "Test", "description": "Test"})
-    assert response.status_code == 403
+    assert response.status_code == 401
 
 def test_create_task_success(client: TestClient):
     """Test creating task with auth succeeds"""
@@ -79,3 +79,66 @@ def test_delete_task(client: TestClient):
     
     get_resp = client.get("/tasks/", headers={"Authorization": f"Bearer {token}"})
     assert len(get_resp.json()) == 0
+
+def test_update_task_status(client: TestClient):
+    client.post("/register", json={"email": "test@test.com", "password": "pass"})
+    login = client.post("/login", json={"email": "test@test.com", "password": "pass"})
+    token = login.json()["access_token"]
+    
+    task = client.post(
+        "/tasks/",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"title": "Test", "description": "Test"}
+    ).json()
+    
+    response = client.put(
+        f"/tasks/{task['id']}",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"status": "in_progress"}
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "in_progress"
+    assert response.json()["title"] == "Test"
+
+def test_cannot_update_other_users_task(client: TestClient):
+    client.post("/register", json={"email": "alice@test.com", "password": "pass"})
+    login_a = client.post("/login", json={"email": "alice@test.com", "password": "pass"})
+    token_a = login_a.json()["access_token"]
+    
+    client.post("/register", json={"email": "bob@test.com", "password": "pass"})
+    login_b = client.post("/login", json={"email": "bob@test.com", "password": "pass"})
+    token_b = login_b.json()["access_token"]
+    
+    task = client.post(
+        "/tasks/",
+        headers={"Authorization": f"Bearer {token_a}"},
+        json={"title": "Alice task"}
+    ).json()
+    
+    response = client.put(
+        f"/tasks/{task['id']}",
+        headers={"Authorization": f"Bearer {token_b}"},
+        json={"title": "Hacked!"}
+    )
+    assert response.status_code == 404
+
+def test_cannot_delete_other_users_task(client: TestClient):
+    client.post("/register", json={"email": "jaca@test.com", "password": "pass"})
+    login_a = client.post("/login", json={"email": "jaca@test.com", "password": "pass"})
+    token_a = login_a.json()["access_token"]
+    
+    client.post("/register", json={"email": "baca@test.com", "password": "pass"})
+    login_b = client.post("/login", json={"email": "baca@test.com", "password": "pass"})
+    token_b = login_b.json()["access_token"]
+
+    task = client.post(
+        "/tasks/",
+        headers={"Authorization": f"Bearer {token_a}"},
+        json={"title": "Jaca task"}
+    ).json()
+
+    response = client.delete(
+        f"/tasks/{task['id']}",
+        headers={"Authorization": f"Bearer {token_b}"},
+    )
+    assert response.status_code == 404
