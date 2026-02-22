@@ -12,12 +12,22 @@ from app.schemas.user import UserCreate
 from app.utils.auth import hash_password, verify_password
 from app.utils.jwt import ACCESS_TOKEN_EXPIRE_MINUTES, create_access_token, verify_token
 import os
+from fastapi.middleware.cors import CORSMiddleware
+
 
 
 if os.getenv("TESTING") != "true":
     Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Integration task manago")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/health")
 def health():
