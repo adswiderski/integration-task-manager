@@ -1,7 +1,7 @@
 import {useState} from 'react';
 import axios from 'axios';
 
-function Login() {
+function Login({onLoginSuccess}) {
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('');
     const [token, setToken] = useState('');
@@ -15,6 +15,7 @@ function Login() {
             });
             setToken(response.data.access_token);
             setError('');
+            onLoginSuccess(response.data.access_token);
         } catch (err) {
             setError('Login failed: ' + (err.response?.data?.detail || 'Unknown error'));
         }
