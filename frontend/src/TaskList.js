@@ -1,7 +1,7 @@
 import {useEffect, useState} from 'react';
 import axios from 'axios';
 
-function TaskList ({ token }) {
+function TaskList ({ token, onRefresh }) {
     const [tasks, setTasks] = useState([])
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
@@ -23,9 +23,9 @@ function TaskList ({ token }) {
         };
 
         if (token) {
-        fetchTasks();
+          fetchTasks();
         }
-    }, [token]);
+    }, [token, onRefresh]);
 
     if (!token) {
     return <p>Please log in to see tasks</p>;
