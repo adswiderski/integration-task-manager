@@ -15,9 +15,23 @@ function App() {
         <Login onLoginSuccess={setToken} />
       ) : (
         <div>
-          <button onClick={() => setToken('')}>Logout</button>
           <CreateTask token={token} onTaskCreated={() => setRefresh(r => r + 1)} />
           <TaskList token={token} onRefresh={refresh} />
+          <div style={{ textAlign: 'center', padding: '20px' }}>
+            <button 
+              onClick={() => setToken('')}
+              style={{
+                padding: '8px 16px',
+                background: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer'
+              }}
+            >
+              Logout
+            </button>
+          </div>          
         </div>
       )}
     </div>
