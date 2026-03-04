@@ -5,10 +5,11 @@ function TaskList ({ token, onRefresh }) {
     const [tasks, setTasks] = useState([])
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+    const [updating, setUpdating] = useState(null);
 
     const handleToggleStatus = async (taskId, currentStatus) => {
       const newStatus = currentStatus === 'done' ? 'pending' : 'done';
-
+      setUpdating(taskId);
       try {
         await axios.put(
           `http://localhost:8000/tasks/${taskId}`,
@@ -21,6 +22,8 @@ function TaskList ({ token, onRefresh }) {
       } catch(err) {
         console.error('Failed to update task: ', err);
         alert('Failed to update task');
+      } finally {
+        setUpdating(null);
       }
     };
 
@@ -115,19 +118,21 @@ function TaskList ({ token, onRefresh }) {
                 <div style={{ display: 'flex', gap: '8px', marginLeft: '15px' }}>
                   <button
                     onClick={() => handleToggleStatus(task.id, task.status)}
+                    disabled={updating === task.id}
                     style={{
                       padding: '6px 12px',
                       background: task.status === 'done' ? '#ffc107' : '#28a745',
                       color: 'white',
                       border: 'none',
                       borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '12px'
+                      fontSize: '12px',
+                      opacity: updating === task.id ? 0.6 :1,
+                      cursor: updating === task.id ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {task.status === 'done' ? '↩️ Undo' : '✓ Done'}
+                    {updating === task.id ? '⏳' : task.status === 'done' ? '↩️ Undo' : '✓ Done'}
                   </button>
-                  
+
                   <button
                     onClick={() => handleDelete(task.id)}
                     style={{
