@@ -6,6 +6,41 @@ function TaskList ({ token, onRefresh }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    const handleToggleStatus = async (taskId, currentStatus) => {
+      const newStatus = currentStatus === 'done' ? 'pending' : 'done';
+
+      try {
+        await axios.put(
+          `http://localhost:8000/tasks/${taskId}`,
+          { status: newStatus },
+          {headers: { Authorization: `Bearer ${token}`}}
+        );
+        setTasks(tasks.map(task =>
+          task.id === taskId ? { ...task, status: newStatus } : task
+        ));
+      } catch(err) {
+        console.error('Failed to update task: ', err);
+        alert('Failed to update task');
+      }
+    };
+
+    const handleDelete = async (taskId) => {
+      if (!window.confirm('Are you sure you want to delete this task?')) {
+        return;
+      }
+      try {
+        await axios.delete(
+          `http://localhost:8000/tasks/${taskId}`,
+          { headers: { Authorization: `Bearer ${token}`}}
+        );
+
+        setTasks(tasks.filter(task => task.id !== taskId));
+      } catch (err) {
+        console.error('Failed to delete tasky: ', err);
+        alert('Failed to delete task');
+      }
+    };
+
     useEffect (() => {
         const fetchTasks = async () => {
         try {
@@ -51,22 +86,64 @@ function TaskList ({ token, onRefresh }) {
             <div 
               key={task.id}
               style={{
-                border: '1px solid #ddd',
+                border: '1px solid #e0e0e0',
+                borderLeft: `4px solid ${task.status === 'done' ? '#28a745' : '#007bff'}`,
                 borderRadius: '8px',
                 padding: '15px',
-                marginBottom: '10px',
-                background: '#f9f9f9'
+                marginBottom: '12px',
+                background: 'white',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
             >
-              <h3 style={{ margin: '0 0 10px 0' }}>{task.title}</h3>
-              <p style={{ margin: '0', color: '#666' }}>{task.description}</p>
-              <p style={{ 
-                margin: '10px 0 0 0', 
-                fontSize: '12px',
-                color: task.status === 'done' ? 'green' : '#999'
-              }}>
-                Status: {task.status}
-              </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+                <div style={{ flex: 1 }}>
+                  <h3 style={{ margin: '0 0 8px 0', color: '#333' }}>{task.title}</h3>
+                  <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
+                    {task.description}
+                  </p>
+                  <span style={{ 
+                    fontSize: '12px',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    background: task.status === 'done' ? '#d4edda' : '#cce5ff',
+                    color: task.status === 'done' ? '#155724' : '#004085'
+                  }}>
+                    {task.status}
+                  </span>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '8px', marginLeft: '15px' }}>
+                  <button
+                    onClick={() => handleToggleStatus(task.id, task.status)}
+                    style={{
+                      padding: '6px 12px',
+                      background: task.status === 'done' ? '#ffc107' : '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    {task.status === 'done' ? '↩️ Undo' : '✓ Done'}
+                  </button>
+                  
+                  <button
+                    onClick={() => handleDelete(task.id)}
+                    style={{
+                      padding: '6px 12px',
+                      background: '#dc3545',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '12px'
+                    }}
+                  >
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
             </div>
           ))}
         </div>
