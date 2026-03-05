@@ -6,6 +6,7 @@ function TaskList ({ token, onRefresh }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [updating, setUpdating] = useState(null);
+    const [filter, setFilter] = useState('all');
 
     const handleToggleStatus = async (taskId, currentStatus) => {
       const newStatus = currentStatus === 'done' ? 'pending' : 'done';
@@ -80,12 +81,61 @@ function TaskList ({ token, onRefresh }) {
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
       <h2>My Tasks</h2>
-      
+
+        <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
+          <button
+            onClick={() => setFilter('all')}
+            style={{
+              padding: '8px 16px',
+              background: filter === 'all' ? '#007bff' : '#e9ecef',
+              color: filter === 'all' ? 'white' : '#333',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: filter === 'all' ? 'bold' : 'normal'
+            }}
+          >
+            All ({tasks.length})
+          </button>
+          
+          <button
+            onClick={() => setFilter('pending')}
+            style={{
+              padding: '8px 16px',
+              background: filter === 'pending' ? '#007bff' : '#e9ecef',
+              color: filter === 'pending' ? 'white' : '#333',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: filter === 'pending' ? 'bold' : 'normal'
+            }}
+          >
+            Pending ({tasks.filter(t => t.status === 'pending').length})
+          </button>
+          
+          <button
+            onClick={() => setFilter('done')}
+            style={{
+              padding: '8px 16px',
+              background: filter === 'done' ? '#28a745' : '#e9ecef',
+              color: filter === 'done' ? 'white' : '#333',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: filter === 'done' ? 'bold' : 'normal'
+            }}
+          >
+            Done ({tasks.filter(t => t.status === 'done').length})
+          </button>
+        </div>
+              
       {tasks.length === 0 ? (
         <p style={{ color: '#666', fontStyle: 'italic' }}>No tasks yet. Create your first task!</p>
       ) : (
         <div>
-          {tasks.map(task => (
+        {tasks
+          .filter(task => filter === 'all' || task.status === filter)
+          .map(task => (
             <div 
               key={task.id}
               style={{
