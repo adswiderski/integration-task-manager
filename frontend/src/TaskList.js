@@ -1,8 +1,7 @@
 import {useEffect, useState} from 'react';
 import axios from 'axios';
 
-function TaskList ({ token, onRefresh }) {
-    const [tasks, setTasks] = useState([])
+function TaskList ({ token, onRefresh, tasks, setTasks }) {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [updating, setUpdating] = useState(null);
