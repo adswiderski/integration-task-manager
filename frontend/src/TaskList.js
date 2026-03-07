@@ -6,6 +6,7 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
     const [error, setError] = useState('');
     const [updating, setUpdating] = useState(null);
     const [filter, setFilter] = useState('all');
+    const [searchQuery, setSearchQuery] = useState('');
 
     const handleToggleStatus = async (taskId, currentStatus) => {
       const newStatus = currentStatus === 'done' ? 'pending' : 'done';
@@ -80,7 +81,21 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
       <h2>My Tasks</h2>
-
+        <input
+          type="text"
+          placeholder="🔍 Search tasks..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '12px',
+            marginBottom: '15px',
+            fontSize: '16px',
+            border: '2px solid #e0e0e0',
+            borderRadius: '8px',
+            boxSizing: 'border-box'
+          }}
+        />
         <div style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
           <button
             onClick={() => setFilter('all')}
@@ -127,6 +142,21 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
             Done ({tasks.filter(t => t.status === 'done').length})
           </button>
         </div>
+
+      {searchQuery && (
+        <p style={{ 
+          fontSize: '14px', 
+          color: '#666', 
+          marginBottom: '10px' 
+        }}>
+          Found {tasks
+            .filter(task => filter === 'all' || task.status === filter)
+            .filter(task => 
+              task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              task.description.toLowerCase().includes(searchQuery.toLowerCase())
+            ).length} task(s)
+        </p>
+      )}
               
       {tasks.length === 0 ? (
         <p style={{ color: '#666', fontStyle: 'italic' }}>No tasks yet. Create your first task!</p>
@@ -134,6 +164,10 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
         <div>
         {tasks
           .filter(task => filter === 'all' || task.status === filter)
+          .filter(task => 
+            task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            task.description.toLowerCase().includes(searchQuery.toLowerCase())
+          )
           .map(task => (
             <div 
               key={task.id}
