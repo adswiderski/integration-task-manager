@@ -7,6 +7,10 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
     const [updating, setUpdating] = useState(null);
     const [filter, setFilter] = useState('all');
     const [searchQuery, setSearchQuery] = useState('');
+    const [editingId, setEditingId] = useState(null);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDesc, setEditDesc] = useState('');
+    const [darkMode, setDarkMode] = useState(false);
 
     const handleToggleStatus = async (taskId, currentStatus) => {
       const newStatus = currentStatus === 'done' ? 'pending' : 'done';
@@ -42,6 +46,30 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
       } catch (err) {
         console.error('Failed to delete tasky: ', err);
         alert('Failed to delete task');
+      }
+    };
+
+    const handleSaveEdit = async (taskId) => {
+      try {
+        await axios.put(
+          `http://localhost:8000/tasks/${taskId}`,
+          { 
+            title: editTitle,
+            description: editDesc
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        
+        setTasks(tasks.map(task => 
+          task.id === taskId 
+            ? { ...task, title: editTitle, description: editDesc }
+            : task
+        ));
+        
+        setEditingId(null);
+      } catch (err) {
+        console.error('Failed to update task:', err);
+        alert('Failed to update task');
       }
     };
 
@@ -181,23 +209,93 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
                 boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
               }}
             >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                <div style={{ flex: 1 }}>
-                  <h3 style={{ margin: '0 0 8px 0', color: '#333' }}>{task.title}</h3>
-                  <p style={{ margin: '0 0 10px 0', color: '#666', fontSize: '14px' }}>
-                    {task.description}
-                  </p>
-                  <span style={{ 
-                    fontSize: '12px',
-                    padding: '4px 8px',
-                    borderRadius: '12px',
-                    background: task.status === 'done' ? '#d4edda' : '#cce5ff',
-                    color: task.status === 'done' ? '#155724' : '#004085'
-                  }}>
-                    {task.status}
-                  </span>
-                </div>
-                
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
+              <div style={{ flex: 1 }}>
+                {editingId === task.id ? (
+                    <div>
+                      <input
+                        type="text"
+                        value={editTitle}
+                        onChange={(e) => setEditTitle(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          marginBottom: '8px',
+                          fontSize: '16px',
+                          border: '2px solid #007bff',
+                          borderRadius: '4px',
+                          boxSizing: 'border-box'
+                        }}
+                        placeholder="Task title"
+                      />
+                      <textarea
+                        value={editDesc}
+                        onChange={(e) => setEditDesc(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '8px',
+                          marginBottom: '8px',
+                          fontSize: '14px',
+                          border: '2px solid #007bff',
+                          borderRadius: '4px',
+                          minHeight: '60px',
+                          boxSizing: 'border-box',
+                          resize: 'vertical'
+                        }}
+                        placeholder="Task description"
+                      />
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleSaveEdit(task.id)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#28a745',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          💾 Save
+                        </button>
+                        <button
+                          onClick={() => setEditingId(null)}
+                          style={{
+                            padding: '6px 12px',
+                            background: '#6c757d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '4px',
+                            cursor: 'pointer',
+                            fontSize: '12px'
+                          }}
+                        >
+                          ❌ Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    // TRYB WYŚWIETLANIA (normalny)
+                    <>
+                      <h3 style={{ margin: '0 0 8px 0', color: darkMode ? '#58a6ff' : '#333' }}>
+                        {task.title}
+                      </h3>
+                      <p style={{ margin: '0 0 10px 0', color: darkMode ? '#8b949e' : '#666', fontSize: '14px' }}>
+                        {task.description}
+                      </p>
+                      <span style={{ 
+                        fontSize: '12px',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        background: task.status === 'done' ? '#d4edda' : '#cce5ff',
+                        color: task.status === 'done' ? '#155724' : '#004085'
+                      }}>
+                        {task.status}
+                      </span>
+                    </>
+                  )}
+                </div>                
                 <div style={{ display: 'flex', gap: '8px', marginLeft: '15px' }}>
                   <button
                     onClick={() => handleToggleStatus(task.id, task.status)}
@@ -215,7 +313,26 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
                   >
                     {updating === task.id ? '⏳' : task.status === 'done' ? '↩️ Undo' : '✓ Done'}
                   </button>
-
+                  {editingId !== task.id && (
+                    <button
+                      onClick={() => {
+                        setEditingId(task.id);
+                        setEditTitle(task.title);
+                        setEditDesc(task.description);
+                      }}
+                      style={{
+                        padding: '6px 12px',
+                        background: '#6c757d',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '12px'
+                      }}
+                    >
+                      ✏️ Edit
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDelete(task.id)}
                     style={{
