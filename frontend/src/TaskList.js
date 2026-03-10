@@ -72,26 +72,24 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
         alert('Failed to update task');
       }
     };
-
-    useEffect (() => {
-        const fetchTasks = async () => {
-        try {
-            const response = await axios.get('http://localhost:8000/tasks/', {
-            headers: { 
-                Authorization: `Bearer ${token}` 
-            }
-            });
-            setTasks(response.data);
-            setLoading(false);
-        } catch (err) {
-            setError('Failed to load tasks: ' + (err.response?.data?.detail || 'Unknown error'));
-            setLoading(false);
-            }
-        };
-
-        if (token) {
-          fetchTasks();
-        }
+    const fetchTasks = async () => {
+      setLoading(true);
+      setError(null);
+      
+      try {
+        const response = await axios.get('http://localhost:8000/tasks', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setTasks(response.data);
+      } catch (err) {
+        console.error('Failed to fetch tasks:', err);
+        setError('Failed to load tasks. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    useEffect(() => {
+      fetchTasks();
     }, [token, onRefresh]);
 
     if (!token) {
@@ -185,10 +183,51 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
             ).length} task(s)
         </p>
       )}
-              
-      {tasks.length === 0 ? (
-        <p style={{ color: '#666', fontStyle: 'italic' }}>No tasks yet. Create your first task!</p>
-      ) : (
+      {loading && (
+        <div style={{ 
+          textAlign: 'center', 
+          padding: '40px',
+          color: darkMode ? '#8b949e' : '#666'
+        }}>
+          <div style={{ fontSize: '48px', marginBottom: '16px' }}>⏳</div>
+          <p>Loading tasks...</p>
+        </div>
+      )}
+
+      {error && (
+        <div style={{
+          background: '#f8d7da',
+          color: '#721c24',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '20px',
+          border: '1px solid #f5c6cb'
+        }}>
+          ❌ {error}
+          <button
+            onClick={fetchTasks}
+            style={{
+              marginLeft: '16px',
+              padding: '6px 12px',
+              background: '#721c24',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer'
+            }}
+          >
+            🔄 Retry
+          </button>
+        </div>
+      )}
+
+      {!loading && !error && tasks.length === 0 && (
+        <p style={{ color: darkMode ? '#8b949e' : '#666', fontStyle: 'italic' }}>
+          No tasks yet. Create your first task!
+        </p>
+      )}
+
+      {!loading && !error && tasks.length > 0 && (
         <div>
         {tasks
           .filter(task => filter === 'all' || task.status === filter)
