@@ -1,5 +1,5 @@
 import Login from './Login';
-import {useState} from 'react'
+import {useState, useEffect} from 'react'
 import TaskList from './TaskList';
 import CreateTask from './CreateTask';
 import Stats from './Stats';
@@ -8,7 +8,13 @@ function App() {
   const [token, setToken] = useState('')
   const [refresh, setRefresh] = useState(0);
   const [tasks, setTasks] = useState([]);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem('darkMode');
+    return saved === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('darkMode', darkMode);
+  }, [darkMode]);
 
   return (
     <div 
