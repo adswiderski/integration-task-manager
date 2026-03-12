@@ -104,6 +104,30 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
     return <p style={{ color: 'red' }}>{error}</p>;
     }
 
+    const handleClearCompleted = async () => {
+      const completedTasks = tasks.filter(t => t.status === 'done');
+      
+      if (!window.confirm(`Delete ${completedTasks.length} completed task(s)?`)) {
+        return;
+      }
+      
+      try {
+        await Promise.all(
+          completedTasks.map(task =>
+            axios.delete(
+              `http://localhost:8000/tasks/${task.id}`,
+              { headers: { Authorization: `Bearer ${token}` } }
+            )
+          )
+        );
+        
+        setTasks(tasks.filter(task => task.status !== 'done'));
+      } catch (err) {
+        console.error('Failed to clear completed tasks:', err);
+        alert('Failed to clear some tasks');
+      }
+    };
+
   return (
     <div style={{ padding: '20px', maxWidth: '600px', margin: '0 auto' }}>
       <h2>My Tasks</h2>
@@ -168,6 +192,23 @@ function TaskList ({ token, onRefresh, tasks, setTasks }) {
             Done ({tasks.filter(t => t.status === 'done').length})
           </button>
         </div>
+      {tasks.filter(t => t.status === 'done').length > 0 && (
+        <button
+          onClick={handleClearCompleted}
+          style={{
+            padding: '8px 16px',
+            background: '#dc3545',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            marginTop: '10px'
+          }}
+        >
+          🗑️ Clear Completed ({tasks.filter(t => t.status === 'done').length})
+        </button>
+      )}
 
       {searchQuery && (
         <p style={{ 
