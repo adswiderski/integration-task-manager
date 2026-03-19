@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 
 const styles = `
@@ -101,10 +101,10 @@ function TaskList({ token, onRefresh, tasks, setTasks }) {
       showToast('Failed to update task', 'error');
     }
   };
-  const fetchTasks = async () => {
+
+  const fetchTasks = useCallback(async () => {
     setLoading(true);
     setError(null);
-
     try {
       const response = await axios.get('http://localhost:8000/tasks', {
         headers: { Authorization: `Bearer ${token}` },
@@ -116,10 +116,45 @@ function TaskList({ token, onRefresh, tasks, setTasks }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token, setTasks]);
+
   useEffect(() => {
     fetchTasks();
-  }, [token, onRefresh]);
+  }, [fetchTasks, onRefresh]);
+
+  const confirmClear = useCallback(async () => {
+    try {
+      await Promise.all(
+        completedToDelete.map(task =>
+          axios.delete(`http://localhost:8000/tasks/${task.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          })
+        )
+      );
+      setTasks(tasks.filter(task => task.status !== 'done'));
+      setShowClearDialog(false);
+      showToast(`Deleted ${completedToDelete.length} task(s)!`, 'success');
+    } catch (err) {
+      console.error('Failed to clear completed:', err);
+      showToast('Failed to clear some tasks', 'error');
+    }
+  }, [completedToDelete, token, tasks, setTasks, showToast]);
+
+  useEffect(() => {
+    if (!showClearDialog) return;
+
+    const handleKeyPress = e => {
+      if (e.key === 'Escape') {
+        setShowClearDialog(false);
+      }
+      if (e.key === 'Enter') {
+        confirmClear();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [showClearDialog, confirmClear]);
 
   if (!token) {
     return <p>Please log in to see tasks</p>;
@@ -137,25 +172,6 @@ function TaskList({ token, onRefresh, tasks, setTasks }) {
     const completedTasks = tasks.filter(t => t.status === 'done');
     setCompletedToDelete(completedTasks);
     setShowClearDialog(true);
-  };
-
-  const confirmClear = async () => {
-    try {
-      await Promise.all(
-        completedToDelete.map(task =>
-          axios.delete(`http://localhost:8000/tasks/${task.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          })
-        )
-      );
-
-      setTasks(tasks.filter(task => task.status !== 'done'));
-      setShowClearDialog(false);
-      showToast(`Deleted ${completedToDelete.length} task(s)!`, 'success');
-    } catch (err) {
-      console.error('Failed to clear completed:', err);
-      showToast('Failed to clear some tasks', 'error');
-    }
   };
 
   return (
