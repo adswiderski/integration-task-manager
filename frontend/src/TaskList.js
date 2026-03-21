@@ -119,19 +119,6 @@ function TaskList({ token, onRefresh, tasks, setTasks }) {
   }, [token, setTasks]);
 
   useEffect(() => {
-    if (tasks.length > 0) {
-      localStorage.setItem('tasks', JSON.stringify(tasks));
-    }
-  }, [tasks]);
-
-  useEffect(() => {
-    const savedTasks = localStorage.getItem('tasks');
-    if (savedTasks) {
-      setTasks(JSON.parse(savedTasks));
-    }
-  }, []);
-
-  useEffect(() => {
     fetchTasks();
   }, [fetchTasks, onRefresh]);
 
